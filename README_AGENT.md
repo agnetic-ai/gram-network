@@ -1,71 +1,161 @@
-# 🤖 AI Agent Execution Specification: Gram Network Miner
+Berikut adalah file **`README_AGENT.md`** utuh yang sudah menggabungkan seluruh instruksi dari awal hingga fitur mutakhir (_multiple accounts, random User-Agent, filter category social_, jeda 2-5 detik, dan otomatisasi _boost_).
 
-This document serves as a strict operational runtime specification for the Autonomous AI Agent. The Agent must read, parse, and execute the following loop logic based on system states.
+Silakan buat file baru bernama **`README_AGENT.md`** di dalam folder proyek kamu, lalu _copy-paste_ seluruh isi di bawah ini:
+
+````markdown
+# 🤖 AI Agent Execution Specification: Gram Network Multi-Account Miner
+
+This document serves as a strict operational runtime specification for the Autonomous AI Agent. The Agent must read, parse, and execute the following loop logic to manage **multiple accounts** securely and efficiently.
 
 ---
 
 ## 📋 System Prerequisites
 
-### 1. Environment Variables (`.env`)
+### 1. Multi-Account Environment Structure (`.env`)
 
-The Agent must ensure the availability of the following key before starting the loop:
+The Agent must support multiple sessions. Accounts must be stored in the `.env` file using a structured naming convention split by the double-pipe (`||`) delimiter:
 
-- `RAW_INIT_DATA`: Raw URL-encoded Telegram WebApp initialization string.
+```env
+# Format: ACCOUNTS=token_akun_1||token_akun_2||token_akun_3
+ACCOUNTS=user%3D%257B%2522id%2522%253A5853...||user%3D%257B%2522id%2522%253A6102...
+```
+````
 
-### 2. Runtime Behavior Rules
+### 2. Strict Operational Rules
 
-- **Decoupled Authentication**: The Agent must parse `RAW_INIT_DATA` and apply `decodeURIComponent()` before embedding it into any request payload.
-- **Anti-Detection Delay**: The Agent **MUST** inject a random delay of `5,000ms` to `12,000ms` between sequential Task Executions to mimic human-like behavior.
-- **Network Resilience**: If a Request fails due to network filtering (e.g., FortiGate Web Filter / 403 Forbidden), the Agent must sleep for `300,000ms` (5 minutes) and retry via alternative routing (VPN/Proxy).
-
----
-
-## 🔄 Autonomous Loop Logic (State Machine)
-
-The Agent must operate in an infinite loop (`while (true)`), executing the following steps sequentially:
-
-### Step 1: State Retrieval (`GET /api/get_user_data.php`)
-
-Fetch current profile metrics. The Agent must analyze the JSON response properties:
-
-1.  Check `user.mining_status`.
-2.  Check `user.time_left_seconds`.
-3.  Check `uncompleted_task_count`.
-
-### Step 2: Decision Tree Matrix
-
-| Current Condition (State)                              | Target Endpoint (Action)     | Payload Format                             | Expected Success Outcome                        |
-| :----------------------------------------------------- | :--------------------------- | :----------------------------------------- | :---------------------------------------------- |
-| `user.mining_status == "Ready to Claim"`               | `POST /api/claim_mining.php` | Form Data: `initData={decoded_string}`     | Proceed to **Start Mining** action immediately. |
-| After Successful Claim OR `mining_status == "Claimed"` | `POST /api/start_mining.php` | Form Data: `initData={decoded_string}`     | Server resets `time_left_seconds` to `14400`.   |
-| `uncompleted_task_count > 0`                           | `GET /api/get_tasks.php`     | Query Params: `initData` & `_t=Date.now()` | Parse `tasks` array. Proceed to **Step 3**.     |
-
-### Step 3: Task Processing Loop
-
-If `get_tasks.php` returns an array of tasks, the Agent must filter and process them:
-
-- **Condition**: Evaluate each task object where `is_completed == false`.
-- **Action**: Send `POST /api/complete_task.php`.
-- **Payload**: Form Data -> `initData={decoded_string}&task_id={task.id}`.
-- **Throttling**: Apply the Anti-Detection Delay after every task submission.
-
-### Step 4: Sleep / Dynamic Hibernation
-
-After executing all eligible actions in Steps 2 & 3, the Agent must calculate its next wake-up time:
-
-- If `user.time_left_seconds > 0`: Sleep for `user.time_left_seconds` + `60 seconds` (buffer).
-- If any API throws an unhandled error: Sleep for `60 seconds` (Cool-off period) before re-evaluating Step 1.
+- **Rotation**: The Agent must process accounts sequentially (Account 1 ➔ Account 2 ➔ Account N) inside the main execution cycle.
+- **Randomized Fingerprinting**: For _every_ account swap, the Agent **MUST** generate and assign a fresh, randomized mobile/desktop `User-Agent` string from a predefined list to prevent account linking.
+- **Targeted Task Filter**: The Agent **MUST ONLY** process tasks where the property `category == "social"`. All other categories (e.g., "hot", "bot") must be completely ignored.
+- **Anti-Detection Delay**: The Agent **MUST** inject a random sleep delay of **2 to 5 seconds** (`2000ms` - `5000ms`) immediately after completing each individual social task.
+- **Network Resilience**: If an endpoint returns a network-level restriction (e.g., 403 Forbidden / FortiGate Block), the Agent must hibernate for 5 minutes and alert the operator.
 
 ---
 
-## 🚨 Expected API Responses for Validation
+## 🔄 Autonomous Loop Logic (Multi-Account State Machine)
 
-### Successful User Fetch Summary
+The Agent must run an infinite loop, executing the following sub-routine for **each account** defined in the system:
+
+```text
+[ For Each Account ] ──▶ [ Assign Random User-Agent ] ──▶ [ GET get_user_data.php ]
+                                                                   │
+ ┌─────────────────────────────────────────────────────────────────┘
+ │
+ ├──▶ State: mining_status == "Ready to Claim"
+ │       │
+ │       ▼
+ │   [ POST claim_mining.php ] ──▶ [ POST start_mining.php ] ──▶ [ POST boost_power.php ]
+ │                                                                           │
+ └───────────────────────────────────────────────────────────────────────────┤
+                                                                             ▼
+                                                                  [ GET get_tasks.php ]
+                                                                             │
+                                                                             ▼
+                                                                Filter: category == "social"
+                                                                & is_completed == false
+                                                                             │
+                                                                             ▼
+                                                                 [ Loop Completed Tasks ]
+                                                                             │
+                                                                             ▼
+                                                                  [ Sleep 2-5 Seconds ]
+
+```
+
+### Detailed Sequential Actions per Account:
+
+1. **Initialize Profile**: Rotate to the next account token and rotate the `User-Agent`. Decode the current token payload using `decodeURIComponent()`.
+2. **State Retrieval**: Fetch profile data from `GET /api/get_user_data.php?initData={decoded_token}`.
+3. **Mining Execution Pipeline**:
+
+- If `user.mining_status == "Ready to Claim"`, execute `POST /api/claim_mining.php`.
+- Immediately after a successful claim, execute `POST /api/start_mining.php` to restart the 4-hour cycle.
+- **Crucial Step**: Right after starting the mining session, the Agent **MUST** hit `POST /api/boost_power.php` to maximize mining power for that account session.
+
+4. **Filtered Task Clearance**:
+
+- Request the task list from `GET /api/get_tasks.php?initData={decoded_token}&_t={timestamp}`.
+- Iterate through the `tasks` array.
+- **Condition**: If `task.category == "social"` AND `task.is_completed == false`, trigger `POST /api/complete_task.php` with the payload `initData={decoded_token}&task_id={task.id}`.
+- **Throttling**: Apply a random cooldown sleep between **2 and 5 seconds** before moving to the next eligible social task.
+
+5. **Dynamic Hibernation**: After all accounts have been processed, find the minimum `time_left_seconds` among all accounts and sleep the entire process for that duration + `60 seconds` buffer.
+
+---
+
+## 📡 Endpoint API Specifications
+
+### 1. Get Detail User
+
+- **Method**: `GET`
+- **URL**: `https://app.gramnetwork.online/api/get_user_data.php`
+
+### 2. Get Available Task
+
+- **Method**: `GET`
+- **URL**: `https://app.gramnetwork.online/api/get_tasks.php`
+
+### 3. Claim Task
+
+- **Method**: `POST`
+- **URL**: `https://app.gramnetwork.online/api/complete_task.php`
+- **Payload (Form Data)**: `initData={decoded_string}&task_id={task_id}`
+
+### 4. Start Mining
+
+- **Method**: `POST`
+- **URL**: `https://app.gramnetwork.online/api/start_mining.php`
+- **Payload (Form Data)**: `initData={decoded_string}`
+
+### 5. Claim Mining
+
+- **Method**: `POST`
+- **URL**: `https://app.gramnetwork.online/api/claim_mining.php`
+- **Payload (Form Data)**: `initData={decoded_string}`
+
+### 6. Boost Power
+
+- **Method**: `POST`
+- **URL**: `https://app.gramnetwork.online/api/boost_power.php`
+- **Payload (Form Data)**: `initData={decoded_string}`
+
+---
+
+## 🚨 Expected JSON Structures for Validation
+
+### User Data Response Example
 
 ```json
 {
   "success": true,
-  "user": { "mining_status": "Ready to Claim", "time_left_seconds": 0 },
+  "user": {
+    "username": "estqimo",
+    "mining_status": "Ready to Claim",
+    "time_left_seconds": 0
+  },
   "uncompleted_task_count": 29
 }
+```
+
+### Task Filtration Target Example
+
+```json
+{
+  "id": 76,
+  "task_id": "TASK-8DFF260B",
+  "title": "Gramnetwork FB Follow & Like",
+  "category": "social",
+  "is_completed": false
+}
+```
+
+---
+
+## 🛠️ Instructions for LLM/Agent Parser
+
+1. Isolate each account's memory space; do not leak headers from Account A into Account B's requests.
+2. Do not attempt to complete a task if its category is not explicitly `"social"`.
+3. Log execution with account indices: `[ACCOUNT #1] [TASK-ID: 76] [STATUS: SUCCESS]`.
+
+```
+
 ```
