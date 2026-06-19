@@ -1,0 +1,5 @@
+# Sembunyikan file konfigurasi sensitif
+.env
+
+# Sembunyikan folder library jika kamu pakai npm install
+node_modules/
