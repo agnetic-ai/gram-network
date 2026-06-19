@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 // 1. Ambil data initData murni dari file .env
-const rawInitData = process.env.RAW_INIT_DATA;
+const rawInitData = process.env.ACCOUNTS;
 
 if (!rawInitData) {
   console.error("Error: RAW_INIT_DATA tidak ditemukan di file .env!");
