@@ -111,27 +111,21 @@ for name, raw in ACCOUNTS:
 
 # ── OUTPUT ──
 lines = []
-lines.append("Gram Network Auto-Claim")
-lines.append("Status · Cycle Complete")
-lines.append("─" * 30)
+lines.append("Gram Network · Cycle Complete")
+lines.append("─" * 26)
 
+total_balance = 0.0
 for r in report:
     if 'error' in r:
-        lines.append(f"{r['name']:10s} ..... ERROR")
+        lines.append(f"{r['name']:10s} ERROR")
     else:
-        lines.append(f"{r['name']:10s} ..... {r['balance']:.2f}")
+        lines.append(f"{r['name']:10s}{r['balance']:>8.2f}")
+        total_balance += r['balance']
 
-lines.append("─" * 30)
-
-for r in report:
-    if 'error' not in r:
-        acts = "+".join(r['actions']) if r['actions'] else 'idle'
-        lines.append(f"{r['name']:10s} {acts:8s} tasks:{r['tasks']}")
-
-lines.append("─" * 30)
-lines.append(f"Earned         +{total_earned:.2f}")
-lines.append(f"Tasks          {total_tasks} done")
-lines.append("─" * 30)
+lines.append("─" * 26)
+lines.append(f"{'Accounts':10s}{len(report):>8d}")
+lines.append(f"{'Total':10s}{total_balance:>8.2f}")
+lines.append(f"{'Earned':10s}{total_earned:>+8.2f}")
 
 output = "\n".join(lines)
 print(output)
