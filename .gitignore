@@ -2,4 +2,4 @@
 .env
 
 # Sembunyikan folder library jika kamu pakai npm install
-node_modules/
+node_modules/.env

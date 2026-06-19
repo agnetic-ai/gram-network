@@ -1,29 +1,35 @@
 #!/usr/bin/env node
 /**
  * Gram Network Auto-Claim — 3 accounts, claim + start + boost + tasks
- * Node.js port of auto_claim.py
+ * Reads accounts from .env (NAME=TOKEN per line)
  */
 
 const https = require("https");
+const fs = require("fs");
+const path = require("path");
 const { URL } = require("url");
 
-const ACCOUNTS = [
-  {
-    name: "ombengz",
-    token:
-      'user=%7B%22id%22%3A1605260429%2C%22first_name%22%3A%22Jawa%22%2C%22last_name%22%3A%22Jawa%22%2C%22username%22%3A%22ombengz%22%2C%22language_code%22%3A%22en%22%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F44K0MhsyvO5CLqK161kfgFTpTOieEnJCa8fulFodyYM.svg%22%7D&chat_instance=-3731378210367609137&chat_type=channel&start_param=8744073404&auth_date=1781839644&signature=uzUoVxrFKbgrJWfimWrktUAn0EtwF0hzm9Mi-3aZtIL2bPkGa3Lp91i5__ZTR2z2CQnVc3SzS6NFbADs6Fj5AA&hash=294e3a9ff6bdb6d1834df30a4259ed5d4ff1ef9d222bc885e40795ef169c78c0',
-  },
-  {
-    name: "sidoraes",
-    token:
-      'user=%7B%22id%22%3A7385639684%2C%22first_name%22%3A%22Kang%22%2C%22last_name%22%3A%22Eight%20%E2%96%AA%EF%B8%8F%22%2C%22username%22%3A%22sidoraes%22%2C%22language_code%22%3A%22en%22%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2FTd1KKsJwy-BhdawAaOIhLj8r6UWss1m_QDLFosXFo-924kxQJ8U2_unNwFNyBejJ.svg%22%7D&chat_instance=-1972142855832227701&chat_type=channel&start_param=1605260429&auth_date=1781837769&signature=o7uaHQgQRxEAfxjire0Y2N7f5_zIysMY_pjDD6-WjKYlgbVB1KED2GrXyj2XBOxDgErSfhvCfckMZgb1r3vdCw&hash=4df3913de6fb29b5099afd8ea65aa5de151e875d1ebc4a0e466a1bb1d3422c9e',
-  },
-  {
-    name: "estqimo",
-    token:
-      "user%3D%257B%2522id%2522%253A5853251704%252C%2522first_name%2522%253A%2522Estri%2522%252C%2522last_name%2522%253A%2522Wulandari%2520%25F0%259F%258D%2585%2520%25E2%2596%25AA%25EF%25B8%258F%2522%252C%2522username%2522%253A%2522estqimo%2522%252C%2522language_code%2522%253A%2522en%2522%252C%2522photo_url%2522%253A%2522https%253A%255C%2F%255C%2Ft.me%255C%2Fi%255C%2Fuserpic%255C%2F320%255C%2FtE36BAIJiFNvyTp1a9HqSsrvHz5CTjK3m_uJBt1HL2ECDkvfb-x_RpWp_hAucnz5.svg%2522%257D%26chat_instance%3D-3731378210367609137%26chat_type%3Dchannel%26start_param%3D8744073404%26auth_date%3D1781660262%26signature%3DZdrLVAKK04Ed6FwIRg1uWCq11XZVDxWbJSYgaL4FCrri1k_AMZ6BohA5YOML7N24Ibd47YyN8D550glkf1j5CA%26hash%3D023065dd0e783499c2d602c5cf1ff9c5710651f77b617620eebba302d984985f",
-  },
-];
+// ── Load .env ───────────────────────────────────────────────
+function loadEnv(filePath) {
+  const abs = path.resolve(__dirname, filePath);
+  if (!fs.existsSync(abs)) {
+    console.error(`Error: ${abs} not found`);
+    process.exit(1);
+  }
+  const accounts = [];
+  for (const line of fs.readFileSync(abs, "utf-8").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx === -1) continue;
+    const name = trimmed.slice(0, eqIdx).trim();
+    const token = trimmed.slice(eqIdx + 1).trim();
+    if (name && token) accounts.push({ name, token });
+  }
+  return accounts;
+}
+
+const ACCOUNTS = loadEnv(".env");
 
 const API = "https://app.gramnetwork.online/api";
 const UAS = [
@@ -106,7 +112,6 @@ async function main() {
     let earned = 0;
 
     try {
-      // Get user data
       const uData = await get("get_user_data.php", enc);
       const u = uData.user;
       const balanceBefore = parseFloat(u.total_balance);
