@@ -191,14 +191,14 @@ def main():
             report.append(f"{name:10s} ERROR: {str(e)[:60]}")
 
     # Output
-    print("\nGram Network · Browser Claim")
-    print("─" * 28)
+    print("Gram Network · Cycle Complete")
+    print("─" * 26)
     for line in report:
         print(line)
-    print("─" * 28)
+    print("─" * 26)
+    print(f"{'Accounts':10s}{len(ACCOUNTS):>8d}")
     print(f"{'Total':10s}{total_balance:>8.2f}")
-    if total_earned != 0:
-        print(f"{'Earned':10s}{total_earned:>+8.2f}")
+    print(f"{'Earned':10s}{total_earned:>+8.2f}")
 
     browser.close()
 
