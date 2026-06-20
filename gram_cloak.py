@@ -79,7 +79,12 @@ def main():
     total_tasks = 0
     total_skipped = 0
 
-    for name, raw in accounts:
+    for i, (name, raw) in enumerate(accounts):
+        # Refresh challenge every 3 accounts to avoid session expiry
+        if i > 0 and i % 3 == 0:
+            page.goto('https://app.gramnetwork.online/', wait_until='networkidle', timeout=30000)
+            time.sleep(5)
+
         enc = encode_token(raw)
         earned = 0.0
         actions = []
