@@ -77,12 +77,14 @@ def main():
     total_balance = 0.0
     total_earned = 0.0
     total_tasks = 0
+    total_skipped = 0
 
     for name, raw in accounts:
         enc = encode_token(raw)
         earned = 0.0
         actions = []
         tasks_done = 0
+        tasks_skip = 0
 
         try:
             result = api_fetch(page, f"get_user_data.php?initData={enc}")
@@ -96,7 +98,6 @@ def main():
             balance_before = float(u['total_balance'])
             mining = u.get('mining_status', '?')
 
-            # Parse completed task IDs
             try:
                 completed_ids = json.loads(u.get('task_completed_ids', '[]'))
             except:
@@ -120,19 +121,27 @@ def main():
             if r.get('success'):
                 actions.append('boost')
 
-            # Social tasks
+            # Social tasks — no cap, 22s delay
             try:
                 tasks_data = json.loads(api_fetch(page, f"get_tasks.php?initData={enc}&_t={int(time.time()*1000)}"))
                 social = [t for t in tasks_data.get('tasks', [])
                           if t.get('category') == 'social' and not t.get('is_completed')
-                          and t.get('id') not in completed_ids][:5]
+                          and t.get('id') not in completed_ids]
 
-                for task in social:
-                    r = json.loads(api_fetch(page, "complete_task.php", "POST", f"initData={enc}&task_id={task['id']}"))
-                    if r.get('success'):
+                for i, task in enumerate(social):
+                    resp = json.loads(api_fetch(page, "complete_task.php", "POST", f"initData={enc}&task_id={task['id']}"))
+                    if resp.get('success'):
                         tasks_done += 1
                         earned += float(task.get('reward', 0))
-                    time.sleep(2)
+                    else:
+                        msg = resp.get('message', resp.get('error', ''))
+                        if 'join the channel' in msg:
+                            tasks_skip += 1
+                        else:
+                            # rate limit or other — still count as attempted
+                            pass
+                    if i < len(social) - 1:
+                        time.sleep(22)
             except:
                 pass
 
@@ -143,11 +152,16 @@ def main():
             earned = balance_after - balance_before
 
             acts = ','.join(actions) if actions else 'idle'
-            task_str = f" +{tasks_done}task" if tasks_done else ""
-            report.append(f"{name:10s}{balance_after:>8.2f}  {acts}{task_str}")
+            parts = [f"{name:10s}{balance_after:>8.2f}  {acts}"]
+            if tasks_done:
+                parts.append(f"+{tasks_done}task")
+            if tasks_skip:
+                parts.append(f"{tasks_skip}skip")
+            report.append(' '.join(parts))
             total_balance += balance_after
             total_earned += earned
             total_tasks += tasks_done
+            total_skipped += tasks_skip
 
         except Exception as e:
             report.append(f"{name:10s} ERROR: {str(e)[:60]}")
@@ -157,12 +171,14 @@ def main():
     lines.append("```bash")
     lines.append("Gram Network · Cycle Complete")
     lines.append("Engine : CloakBrowser")
-    lines.append("─" * 34)
+    lines.append("─" * 38)
     for line in report:
         lines.append(line)
-    lines.append("─" * 34)
+    lines.append("─" * 38)
     lines.append(f"{'Accounts':10s}{len(accounts):>8d}")
     lines.append(f"{'Tasks':10s}{total_tasks:>8d}")
+    if total_skipped:
+        lines.append(f"{'Skipped':10s}{total_skipped:>8d}")
     lines.append(f"{'Total':10s}{total_balance:>8.2f}")
     lines.append(f"{'Earned':10s}{total_earned:>+8.2f}")
     lines.append("```")
