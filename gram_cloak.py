@@ -22,25 +22,12 @@ def encode_token(raw):
     return urllib.parse.quote(decoded, safe='')
 
 def main():
-    print("[*] Launching CloakBrowser...")
     browser = launch(headless=False)
     page = browser.new_page()
 
     # Step 1: Hit the site to trigger + solve JS challenge
-    print("[*] Navigating to Gram Network to solve JS challenge...")
     page.goto('https://app.gramnetwork.online/', wait_until='networkidle', timeout=30000)
     time.sleep(5)  # let challenge resolve
-
-    title = page.title()
-    print(f"[*] Page title: {title}")
-
-    # Check if challenge resolved
-    url = page.url
-    print(f"[*] Current URL: {url}")
-
-    # Get cookies after challenge
-    cookies = page.evaluate('document.cookie')
-    print(f"[*] Cookies: {cookies[:200]}")
 
     # Step 2: Try API call via browser (JS fetch)
     report = []
