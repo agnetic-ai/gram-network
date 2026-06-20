@@ -178,15 +178,19 @@ def main():
             report.append(f"{name:10s} ERROR: {str(e)[:60]}")
 
     # Output
-    print("Gram Network · Cycle Complete")
-    print("Engine : CloakBrowser")
-    print("─" * 26)
+    lines = []
+    lines.append("```bash")
+    lines.append("Gram Network · Cycle Complete")
+    lines.append("Engine : CloakBrowser")
+    lines.append("─" * 26)
     for line in report:
-        print(line)
-    print("─" * 26)
-    print(f"{'Accounts':10s}{len(ACCOUNTS):>8d}")
-    print(f"{'Total':10s}{total_balance:>8.2f}")
-    print(f"{'Earned':10s}{total_earned:>+8.2f}")
+        lines.append(line)
+    lines.append("─" * 26)
+    lines.append(f"{'Accounts':10s}{len(ACCOUNTS):>8d}")
+    lines.append(f"{'Total':10s}{total_balance:>8.2f}")
+    lines.append(f"{'Earned':10s}{total_earned:>+8.2f}")
+    lines.append("```")
+    print("\n".join(lines))
 
     browser.close()
 
